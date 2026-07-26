@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LinkMemo 登録内容の編集</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="popup.html" aria-label="LinkMemo">
+        <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div>
+          <p>WORK LAUNCHER</p>
+          <strong>LinkMemo</strong>
+        </div>
+      </a>
+      <div class="save-status" id="saveStatus" role="status">
+        <span></span> 保存済み
+      </div>
+    </header>
+
+    <main>
+      <section class="page-title">
+        <div>
+          <p class="eyebrow">BOOKMARK MANAGER</p>
+          <h1>登録内容の編集</h1>
+          <p class="lead">仕事の流れに合わせて、リンクをグループにまとめておきましょう。</p>
+        </div>
+        <button class="primary-button" id="addGroup" type="button">＋ 新しいグループ</button>
+      </section>
+
+      <section class="stats" aria-label="登録状況">
+        <div><span id="groupCount">0</span><small>グループ</small></div>
+        <div><span id="bookmarkCount">0</span><small>登録リンク</small></div>
+        <div><span id="domainCount">0</span><small>ドメイン</small></div>
+      </section>
+
+      <section class="manager">
+        <div class="manager-heading">
+          <div>
+            <h2>グループとリンク</h2>
+            <p>矢印ボタンで表示順を変更できます。</p>
+          </div>
+        </div>
+        <div class="group-list" id="groupList"></div>
+      </section>
+
+      <section class="data-tools">
+        <div>
+          <h2>バックアップ</h2>
+          <p>登録内容をJSONファイルで保存・復元できます。</p>
+        </div>
+        <div class="tool-actions">
+          <button class="outline-button" id="exportData" type="button">エクスポート</button>
+          <label class="outline-button file-button">
+            インポート
+            <input id="importData" type="file" accept="application/json,.json">
+          </label>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="groupDialog">
+      <form id="groupForm">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">GROUP</p>
+            <h2 id="groupDialogTitle">新しいグループ</h2>
+          </div>
+          <button class="close-button" type="button" data-close="groupDialog" aria-label="閉じる">×</button>
+        </div>
+        <input id="groupId" type="hidden">
+        <label>
+          グループ名
+          <input id="groupName" type="text" maxlength="60" placeholder="例：毎朝開く" required>
+        </label>
+        <fieldset>
+          <legend>アイコン</legend>
+          <div class="emoji-options" id="emojiOptions"></div>
+        </fieldset>
+        <fieldset>
+          <legend>グループ見出しの背景色</legend>
+          <div class="color-options" id="colorOptions"></div>
+          <p class="field-help">ポップアップのグループ見出しやアクセントに反映されます。</p>
+        </fieldset>
+        <p class="form-error" id="groupError"></p>
+        <div class="dialog-actions">
+          <button class="cancel-button" type="button" data-close="groupDialog">キャンセル</button>
+          <button class="primary-button" type="submit">保存する</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="bookmarkDialog">
+      <form id="bookmarkForm">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">LINK</p>
+            <h2 id="bookmarkDialogTitle">リンクを追加</h2>
+          </div>
+          <button class="close-button" type="button" data-close="bookmarkDialog" aria-label="閉じる">×</button>
+        </div>
+        <input id="bookmarkId" type="hidden">
+        <label>
+          保存先グループ
+          <select id="bookmarkGroupId" required></select>
+          <small>変更すると、このリンクを別のグループへ移動できます。</small>
+        </label>
+        <label>
+          タイトル
+          <input id="bookmarkTitle" type="text" maxlength="160" placeholder="例：勤怠システム" required>
+        </label>
+        <label>
+          URL
+          <input id="bookmarkUrl" type="text" inputmode="url" placeholder="https://example.com" required>
+          <small>「example.com」のような入力でも登録できます。</small>
+        </label>
+        <p class="form-error" id="bookmarkError"></p>
+        <div class="dialog-actions">
+          <button class="cancel-button" type="button" data-close="bookmarkDialog">キャンセル</button>
+          <button class="primary-button" type="submit">保存する</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="confirmDialog" class="confirm-dialog">
+      <form method="dialog">
+        <div class="confirm-icon" aria-hidden="true">!</div>
+        <h2 id="confirmTitle">削除しますか？</h2>
+        <p id="confirmText"></p>
+        <div class="dialog-actions">
+          <button class="cancel-button" value="cancel">キャンセル</button>
+          <button class="danger-button" value="confirm">削除する</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="dev-preview.js"></script>
+    <script src="storage.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>
