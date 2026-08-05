@@ -91,6 +91,9 @@
     }
   };
   mockChrome.runtime = {
+    getManifest() {
+      return { version: "1.2.0" };
+    },
     openOptionsPage() {
       globalThis.location.href = "options.html";
     }
