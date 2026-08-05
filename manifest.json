@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LinkMemo - 仕事スタート",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "仕事用ページをグループごとに登録し、まとめてタブで開けるChromium対応ランチャーです。",
   "permissions": [
     "storage",

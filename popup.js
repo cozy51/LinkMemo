@@ -26,7 +26,8 @@
     openAllConfirmText: document.querySelector("#openAllConfirmText"),
     cancelOpenAll: document.querySelector("#cancelOpenAll"),
     confirmOpenAll: document.querySelector("#confirmOpenAll"),
-    toast: document.querySelector("#toast")
+    toast: document.querySelector("#toast"),
+    appVersion: document.querySelector("#appVersion")
   };
 
   function faviconUrl(url) {
@@ -151,6 +152,11 @@
     return card;
   }
 
+  function renderVersion() {
+    const version = chrome.runtime?.getManifest?.().version || "0.0.0";
+    elements.appVersion.textContent = `v${version}`;
+  }
+
   function render() {
     const bookmarks = Store.getAllBookmarks(data);
     elements.groupCount.textContent = String(data.groups.length);
@@ -268,6 +274,7 @@
   }
 
   async function init() {
+    renderVersion();
     data = await Store.load();
     render();
 
