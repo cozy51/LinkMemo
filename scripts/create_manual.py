@@ -127,7 +127,7 @@ def draw_footer(c, page):
     c.setLineWidth(0.6)
     c.line(MARGIN, 31, PAGE_W - MARGIN, 31)
     set_font(c, 7.5, color=LIGHT_MUTED)
-    c.drawString(MARGIN, 18, "LinkMemo Chrome / Edge 利用マニュアル  |  Version 1.1.0")
+    c.drawString(MARGIN, 18, "LinkMemo Chrome / Edge 利用マニュアル  |  Version 1.2.0")
     c.drawRightString(PAGE_W - MARGIN, 18, f"{page} / {TOTAL_PAGES}")
 
 
@@ -231,7 +231,7 @@ def draw_extension_page_mock(c, x, y, w, h, browser="Chrome"):
     set_font(c, 9.5, bold=True)
     c.drawString(x + 82, y + h - 134, "LinkMemo - 仕事スタート")
     set_font(c, 7.2, color=MUTED)
-    c.drawString(x + 82, y + h - 148, "有効  |  Version 1.1.0")
+    c.drawString(x + 82, y + h - 148, "有効  |  Version 1.2.0")
 
 
 def draw_popup_mock(c, x, y, w, h, show_quick_add=False):
@@ -544,7 +544,7 @@ def cover_page(c):
         draw_wrapped(c, body, x + 14, card_y + 42, card_w - 28, size=8, leading=13, color=MUTED)
 
     set_font(c, 8.5, bold=True, color=BLUE)
-    c.drawString(MARGIN, 91, "対象バージョン 1.1.0")
+    c.drawString(MARGIN, 91, "対象バージョン 1.2.0")
     set_font(c, 8.5, color=MUTED)
     c.drawString(MARGIN, 72, "対応ブラウザー：Google Chrome / Microsoft Edge")
     c.drawString(MARGIN, 54, "発行日：2026年7月")
@@ -939,7 +939,7 @@ def build_pdf():
     c = canvas.Canvas(str(OUTPUT), pagesize=A4, pageCompression=1)
     c.setTitle("LinkMemo Chrome / Edge かんたん利用マニュアル")
     c.setAuthor("LinkMemo")
-    c.setSubject("LinkMemo Version 1.1.0 User Guide")
+    c.setSubject("LinkMemo Version 1.2.0 User Guide")
 
     cover_page(c)
     overview_page(c)
