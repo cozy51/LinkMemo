@@ -298,5 +298,8 @@
     });
   }
 
+  // Shared with cloud-sync.js so it reports through this popup's toast.
+  globalThis.linkMemoUI = { toast: showToast };
+
   init().catch(() => showToast("データを読み込めませんでした"));
 })();

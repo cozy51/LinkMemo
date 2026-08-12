@@ -1,12 +1,15 @@
 {
   "manifest_version": 3,
   "name": "LinkMemo - 仕事スタート",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "仕事用ページをグループごとに登録し、まとめてタブで開けるChromium対応ランチャーです。",
   "permissions": [
     "storage",
     "activeTab",
     "favicon"
+  ],
+  "host_permissions": [
+    "https://*.supabase.co/*"
   ],
   "action": {
     "default_title": "LinkMemoを開く",

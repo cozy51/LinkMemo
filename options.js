@@ -48,6 +48,8 @@
   let data = null;
   let toastTimer = null;
   let confirmAction = null;
+  let confirmResolve = null;
+  let pendingImport = null;
 
   const elements = {
     groupList: document.querySelector("#groupList"),
@@ -77,6 +79,24 @@
     confirmDialog: document.querySelector("#confirmDialog"),
     confirmTitle: document.querySelector("#confirmTitle"),
     confirmText: document.querySelector("#confirmText"),
+    confirmAccept: document.querySelector("#confirmAccept"),
+    importDialog: document.querySelector("#importDialog"),
+    importForm: document.querySelector("#importForm"),
+    closeImportDialog: document.querySelector("#closeImportDialog"),
+    cancelImport: document.querySelector("#cancelImport"),
+    confirmImport: document.querySelector("#confirmImport"),
+    importFileName: document.querySelector("#importFileName"),
+    importCurrentUpdatedAt: document.querySelector("#importCurrentUpdatedAt"),
+    importFileUpdatedAt: document.querySelector("#importFileUpdatedAt"),
+    importCurrentGroupCount: document.querySelector("#importCurrentGroupCount"),
+    importFileGroupCount: document.querySelector("#importFileGroupCount"),
+    importCurrentBookmarkCount: document.querySelector("#importCurrentBookmarkCount"),
+    importFileBookmarkCount: document.querySelector("#importFileBookmarkCount"),
+    importCurrentDomainCount: document.querySelector("#importCurrentDomainCount"),
+    importFileDomainCount: document.querySelector("#importFileDomainCount"),
+    importWarning: document.querySelector("#importWarning"),
+    importAcknowledgeRow: document.querySelector("#importAcknowledgeRow"),
+    importAcknowledge: document.querySelector("#importAcknowledge"),
     toast: document.querySelector("#toast")
   };
 
@@ -448,12 +468,42 @@
   function confirmDelete(title, text, action) {
     elements.confirmTitle.textContent = title;
     elements.confirmText.textContent = text;
+    elements.confirmAccept.textContent = "削除する";
     confirmAction = action;
     elements.confirmDialog.showModal();
   }
 
+  // The same dialog, asked as a question: the cloud sync uses it so a rollback
+  // is confirmed in this page's own style rather than the browser's.
+  function askConfirmation({ title, message, confirmLabel = "実行する" }) {
+    elements.confirmTitle.textContent = title;
+    elements.confirmText.textContent = message;
+    elements.confirmAccept.textContent = confirmLabel;
+    confirmAction = null;
+    return new Promise((resolve) => {
+      confirmResolve = resolve;
+      elements.confirmDialog.showModal();
+    });
+  }
+
+  function exportPayload() {
+    const now = new Date();
+    return {
+      format: LINK_MEMO_BACKUP_FORMAT,
+      kind: LINK_MEMO_BACKUP_KIND,
+      version: 1,
+      schemaVersion: LINK_MEMO_SCHEMA_VERSION,
+      extensionVersion: chrome.runtime?.getManifest?.().version || "",
+      // Written so a later import can tell how old this file is; without it the
+      // two sides can only be compared by their counts.
+      exportedAt: now.toISOString(),
+      counts: countLinkMemoRecords(data),
+      groups: data.groups
+    };
+  }
+
   function exportData() {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(exportPayload(), null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     const now = new Date();
@@ -470,16 +520,112 @@
     showToast("バックアップを書き出しました");
   }
 
+  function formatDateTime(value) {
+    const date = new Date(value);
+    if (!value || Number.isNaN(date.getTime())) return "不明";
+    return new Intl.DateTimeFormat("ja-JP", {
+      year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit"
+    }).format(date);
+  }
+
+  // The file's counts are what the user judges by, so each one carries how far
+  // it moves from the current data rather than leaving the subtraction to them.
+  function formatCountDifference(count, current) {
+    const difference = count - current;
+    if (difference === 0) return `${count}件（増減なし）`;
+    return `${count}件（${difference > 0 ? "+" : "-"}${Math.abs(difference)}）`;
+  }
+
+  // Importing is the one action that can walk the data backwards on purpose, so
+  // an older file has to be acknowledged before it can be applied.
+  function applyImportWarning(assessment) {
+    const stale = assessment.level === "danger";
+    elements.importAcknowledge.checked = false;
+    elements.importAcknowledgeRow.hidden = !stale;
+    elements.confirmImport.disabled = stale;
+    elements.confirmImport.className = stale ? "danger-button" : "primary-button";
+    elements.confirmImport.textContent = stale ? "古い内容で上書きする" : "全件をインポート";
+
+    // Age and size are separate facts, and a file can carry both: say each of
+    // them that applies rather than letting the loudest one hide the rest.
+    const notes = [];
+    if (stale) {
+      notes.push(
+        `このファイルは、現在のデータより${formatLinkMemoElapsed(assessment.staleMs)}古い内容です。`
+        + "インポートすると、その間の変更は失われます。"
+        + (assessment.shrink ? describeLinkMemoShrink(assessment.shrink) : "")
+      );
+    } else if (assessment.level === "caution") {
+      notes.push(assessment.shrink.reason === "empty"
+        ? "このファイルにはリンクが1件も入っていません。インポートすると現在の登録内容がすべて消えます。"
+        : describeLinkMemoShrink(assessment.shrink));
+    }
+    if (!assessment.comparable) {
+      notes.push("日時を読み取れないため、どちらが新しいかは判断できません。件数を確認してください。");
+    }
+    elements.importWarning.textContent = notes.join("");
+    elements.importWarning.dataset.level = stale ? "danger" : "caution";
+    elements.importWarning.hidden = notes.length === 0;
+  }
+
+  function openImportDialog(fileName, dataset, current, assessment) {
+    const fileCounts = countLinkMemoRecords(dataset);
+    const currentCounts = countLinkMemoRecords(current);
+    pendingImport = { dataset, assessment };
+
+    elements.importFileName.textContent = fileName;
+    elements.importCurrentUpdatedAt.textContent = formatDateTime(assessment.currentAt);
+    elements.importFileUpdatedAt.textContent = formatDateTime(assessment.fileAt);
+    elements.importCurrentGroupCount.textContent = `${currentCounts.groups}件`;
+    elements.importFileGroupCount.textContent =
+      formatCountDifference(fileCounts.groups, currentCounts.groups);
+    elements.importCurrentBookmarkCount.textContent = `${currentCounts.bookmarks}件`;
+    elements.importFileBookmarkCount.textContent =
+      formatCountDifference(fileCounts.bookmarks, currentCounts.bookmarks);
+    elements.importCurrentDomainCount.textContent = `${currentCounts.domains}件`;
+    elements.importFileDomainCount.textContent =
+      formatCountDifference(fileCounts.domains, currentCounts.domains);
+
+    applyImportWarning(assessment);
+    elements.importDialog.showModal();
+  }
+
+  function closeImportDialog() {
+    pendingImport = null;
+    elements.importDialog.close();
+  }
+
+  async function applyImport(dataset) {
+    data = Store.normalizeData(dataset);
+    await persist(`全${countLinkMemoRecords(data).bookmarks}件のリンクを読み込みました`);
+  }
+
   async function importData(event) {
     const [file] = event.target.files;
     event.target.value = "";
     if (!file) return;
 
     try {
-      const raw = JSON.parse(await file.text());
-      if (!raw || !Array.isArray(raw.groups)) throw new Error("invalid");
-      data = Store.normalizeData(raw);
-      await persist("バックアップを読み込みました");
+      const raw = validateLinkMemoBackup(JSON.parse(await file.text()));
+      // Normalized the same way the cloud sync normalizes, so an imported file
+      // and a cloud document stay directly comparable.  Dates are taken as they
+      // are: stamping "now" on an undated file would make the oldest backup look
+      // like the newest data and silence the warning this check exists to raise.
+      const dataset = normalizeLinkMemoDataset(raw);
+      const current = normalizeLinkMemoDataset(data);
+      const assessment = assessLinkMemoImport({
+        fileExportedAt: raw.exportedAt || raw.sync?.updatedAt,
+        fileDataset: dataset,
+        currentUpdatedAt: await Store.loadUpdatedAt(),
+        currentDataset: current
+      });
+
+      // Nothing registered yet is nothing to lose.
+      if (isLinkMemoDatasetEmpty(current) && current.groups.length <= 1) {
+        await applyImport(dataset);
+        return;
+      }
+      openImportDialog(file.name, dataset, current, assessment);
     } catch {
       showToast("ファイルを読み込めませんでした");
     }
@@ -500,10 +646,37 @@
       button.addEventListener("click", () => document.querySelector(`#${button.dataset.close}`).close());
     });
 
+    elements.closeImportDialog.addEventListener("click", closeImportDialog);
+    elements.cancelImport.addEventListener("click", closeImportDialog);
+    elements.importDialog.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      closeImportDialog();
+    });
+    elements.importAcknowledge.addEventListener("change", () => {
+      elements.confirmImport.disabled = !elements.importAcknowledge.checked;
+    });
+    elements.importForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!pendingImport) return;
+      const { dataset, assessment } = pendingImport;
+      // The acknowledgement is the whole guard against an old file replacing
+      // newer data, so it is checked here as well as on the button.
+      if (assessment.level === "danger" && !elements.importAcknowledge.checked) {
+        showToast("古い内容で上書きすることを確認してください");
+        return;
+      }
+      closeImportDialog();
+      await applyImport(dataset);
+    });
+
     elements.confirmDialog.addEventListener("close", async () => {
       const action = confirmAction;
+      const resolve = confirmResolve;
+      const approved = elements.confirmDialog.returnValue === "confirm";
       confirmAction = null;
-      if (elements.confirmDialog.returnValue === "confirm" && action) await action();
+      confirmResolve = null;
+      if (resolve) resolve(approved);
+      if (approved && action) await action();
     });
 
     chrome.storage.onChanged.addListener((changes, area) => {
@@ -513,6 +686,13 @@
       }
     });
   }
+
+  // Shared with cloud-sync.js so its dialogs reuse this page's confirmation and
+  // toast instead of the browser's blocking ones.
+  globalThis.linkMemoUI = {
+    confirm: askConfirmation,
+    toast: showToast
+  };
 
   init().catch(() => showToast("データを読み込めませんでした"));
 })();
