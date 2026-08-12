@@ -2,16 +2,13 @@
   "use strict";
 
   const STORAGE_KEY = "linkMemoData";
-  const GROUP_COLORS = [
-    "blue",
-    "lightblue",
-    "purple",
-    "green",
-    "yellow",
-    "orange",
-    "pink",
-    "black"
-  ];
+  // When the stored data last changed.  An import is judged against it, so a
+  // file exported before the current data was edited can be recognised as old.
+  const UPDATED_AT_KEY = "linkMemoDataUpdatedAt";
+  // Declared by sync-core.js, which every page loads first.  `const` at the top
+  // level of a classic script is not a property of the global object, so these
+  // are reached by name rather than through `globalThis`.
+  const GROUP_COLORS = LINK_MEMO_GROUP_COLORS;
 
   const DEFAULT_DATA = {
     version: 1,
@@ -38,51 +35,12 @@
     return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   }
 
-  function normalizeUrl(value) {
-    const input = String(value || "").trim();
-    if (!input) return "";
-
-    const withProtocol = /^[a-z][a-z\d+.-]*:/i.test(input)
-      ? input
-      : `https://${input}`;
-
-    try {
-      const url = new URL(withProtocol);
-      if (!["http:", "https:"].includes(url.protocol)) return "";
-      return url.href;
-    } catch {
-      return "";
-    }
-  }
-
+  // Normalization itself lives in sync-core.js, so the editor, the popup, and
+  // the cloud sync all judge the same data the same way.  What is added here is
+  // the shape the pages expect: a versioned object that always has a group to
+  // put links in.
   function normalizeData(raw) {
-    if (!raw || !Array.isArray(raw.groups)) return clone(DEFAULT_DATA);
-
-    const groups = raw.groups
-      .filter((group) => group && typeof group === "object")
-      .map((group) => ({
-        id: String(group.id || createId("group")),
-        name: String(group.name || "名称未設定").slice(0, 60),
-        emoji: String(group.emoji || "📌").slice(0, 8),
-        color: GROUP_COLORS.includes(group.color)
-          ? group.color
-          : "blue",
-        collapsed: Boolean(group.collapsed),
-        bookmarks: Array.isArray(group.bookmarks)
-          ? group.bookmarks
-              .map((bookmark) => {
-                const url = normalizeUrl(bookmark && bookmark.url);
-                if (!url) return null;
-                return {
-                  id: String(bookmark.id || createId("bookmark")),
-                  title: String(bookmark.title || new URL(url).hostname).slice(0, 160),
-                  url
-                };
-              })
-              .filter(Boolean)
-          : []
-      }));
-
+    const { groups } = normalizeLinkMemoDataset(raw);
     return {
       version: 1,
       groups: groups.length ? groups : clone(DEFAULT_DATA.groups)
@@ -94,9 +52,22 @@
     return normalizeData(stored[STORAGE_KEY]);
   }
 
-  async function save(data) {
+  async function loadUpdatedAt() {
+    const stored = await chrome.storage.local.get(UPDATED_AT_KEY);
+    return String(stored[UPDATED_AT_KEY] || "");
+  }
+
+  // `origin: "cloud"` marks a copy that came *from* the cloud: it must not be
+  // pushed straight back, and its stamp is the moment the cloud copy was
+  // written rather than now, so a later import is compared against when the
+  // data actually changed.
+  async function save(data, { updatedAt = "", origin = "local" } = {}) {
     const normalized = normalizeData(data);
-    await chrome.storage.local.set({ [STORAGE_KEY]: normalized });
+    await chrome.storage.local.set({
+      [STORAGE_KEY]: normalized,
+      [UPDATED_AT_KEY]: updatedAt || new Date().toISOString()
+    });
+    if (origin !== "cloud") globalThis.linkMemoCloudSync?.notifyLocalChange();
     return normalized;
   }
 
@@ -106,12 +77,15 @@
 
   globalThis.LinkMemoStore = {
     STORAGE_KEY,
+    UPDATED_AT_KEY,
     DEFAULT_DATA,
+    GROUP_COLORS,
     clone,
     createId,
-    normalizeUrl,
+    normalizeUrl: normalizeLinkMemoUrl,
     normalizeData,
     load,
+    loadUpdatedAt,
     save,
     getAllBookmarks
   };

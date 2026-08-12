@@ -39,6 +39,17 @@
         </button>
       </section>
 
+      <div class="cloud-strip" aria-label="クラウド同期">
+        <span class="cloud-sync-texts">
+          <span class="cloud-sync-status" id="cloudSyncStatus" aria-live="polite">クラウド同期を確認中…</span>
+          <span class="cloud-sync-detail" id="cloudSyncDetail" hidden></span>
+        </span>
+        <span class="cloud-strip-actions">
+          <button class="cloud-chip is-danger" id="cloudSyncResolve" type="button" hidden>編集画面で確認</button>
+          <button class="cloud-chip" id="cloudSyncNow" type="button" hidden>今すぐ同期</button>
+        </span>
+      </div>
+
       <div class="section-heading">
         <div>
           <p class="eyebrow">MY GROUPS</p>
@@ -117,7 +128,10 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script src="dev-preview.js"></script>
+    <script src="sync-core.js"></script>
+    <script src="supabase-client.js"></script>
     <script src="storage.js"></script>
     <script src="popup.js"></script>
+    <script src="cloud-sync.js"></script>
   </body>
 </html>

@@ -71,6 +71,11 @@
           previewStorage[key] = newValue;
         });
         listeners.forEach((listener) => listener(changes, "local"));
+      },
+      async remove(keys) {
+        (Array.isArray(keys) ? keys : [keys]).forEach((key) => {
+          delete previewStorage[key];
+        });
       }
     },
     onChanged: {
@@ -92,7 +97,7 @@
   };
   mockChrome.runtime = {
     getManifest() {
-      return { version: "1.2.0" };
+      return { version: "1.3.0" };
     },
     openOptionsPage() {
       globalThis.location.href = "options.html";

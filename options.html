@@ -15,8 +15,24 @@
           <strong>LinkMemo</strong>
         </div>
       </a>
-      <div class="save-status" id="saveStatus" role="status">
-        <span></span> 保存済み
+      <div class="topbar-tools">
+        <div class="save-status" id="saveStatus" role="status">
+          <span></span> 保存済み
+        </div>
+        <div class="cloud-sync-panel" aria-label="クラウド同期">
+          <div class="cloud-sync-texts">
+            <span id="cloudSyncStatus" class="cloud-sync-status" aria-live="polite">クラウド同期を確認中…</span>
+            <span id="cloudSyncDetail" class="cloud-sync-detail" hidden></span>
+          </div>
+          <div class="cloud-sync-actions">
+            <button id="cloudSyncResolve" class="danger-button" type="button" hidden>同期の確認</button>
+            <button id="cloudSyncNow" class="outline-button" type="button" hidden>今すぐ同期</button>
+            <button id="cloudSyncHistory" class="outline-button" type="button" hidden>クラウド履歴</button>
+            <button id="cloudSyncSignIn" class="outline-button" type="button" hidden>ログイン</button>
+            <button id="cloudSyncSignOut" class="outline-button" type="button" hidden>ログアウト</button>
+            <button id="cloudSyncSettings" class="outline-button" type="button">クラウド設定</button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -49,7 +65,7 @@
       <section class="data-tools">
         <div>
           <h2>バックアップ</h2>
-          <p>登録内容をJSONファイルで保存・復元できます。</p>
+          <p>登録内容をJSONファイルで保存・復元できます。インポート前に件数と日時を比べて表示します。</p>
         </div>
         <div class="tool-actions">
           <button class="outline-button" id="exportData" type="button">エクスポート</button>
@@ -131,15 +147,214 @@
         <p id="confirmText"></p>
         <div class="dialog-actions">
           <button class="cancel-button" value="cancel">キャンセル</button>
-          <button class="danger-button" value="confirm">削除する</button>
+          <button class="danger-button" id="confirmAccept" value="confirm">削除する</button>
         </div>
       </form>
+    </dialog>
+
+    <dialog id="importDialog">
+      <form id="importForm">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">IMPORT</p>
+            <h2>インポート内容を確認</h2>
+          </div>
+          <button class="close-button" type="button" id="closeImportDialog" aria-label="閉じる">×</button>
+        </div>
+
+        <p class="compare-file">
+          <span>ファイル</span>
+          <strong id="importFileName"></strong>
+        </p>
+
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th scope="col"><span class="visually-hidden">項目</span></th>
+              <th scope="col">現在</th>
+              <th scope="col">ファイル</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">最終更新</th>
+              <td id="importCurrentUpdatedAt"></td>
+              <td id="importFileUpdatedAt"></td>
+            </tr>
+            <tr>
+              <th scope="row">グループ</th>
+              <td id="importCurrentGroupCount"></td>
+              <td id="importFileGroupCount"></td>
+            </tr>
+            <tr>
+              <th scope="row">リンク</th>
+              <td id="importCurrentBookmarkCount"></td>
+              <td id="importFileBookmarkCount"></td>
+            </tr>
+            <tr>
+              <th scope="row">ドメイン</th>
+              <td id="importCurrentDomainCount"></td>
+              <td id="importFileDomainCount"></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p id="importWarning" class="compare-warning" role="alert" hidden></p>
+        <p class="field-help">現在の登録内容は、ファイルの内容にすべて置き換わります。続けますか？</p>
+
+        <label id="importAcknowledgeRow" class="acknowledge" hidden>
+          <input id="importAcknowledge" type="checkbox">
+          <span>古い内容で上書きし、それ以降の変更が失われることを確認しました</span>
+        </label>
+
+        <div class="dialog-actions">
+          <button class="cancel-button" type="button" id="cancelImport">キャンセル</button>
+          <button class="primary-button" type="submit" id="confirmImport">全件をインポート</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="cloudSettingsDialog">
+      <form id="cloudSettingsForm">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">CLOUD</p>
+            <h2>クラウド設定</h2>
+          </div>
+          <button class="close-button" type="button" id="closeCloudSettings" aria-label="閉じる">×</button>
+        </div>
+        <p class="field-help">
+          Supabaseのプロジェクト情報を登録すると、登録内容を複数のPCで共有し、上書き前の内容を履歴として残せます。
+        </p>
+        <label>
+          プロジェクトURL
+          <input id="cloudUrlInput" type="text" inputmode="url" placeholder="https://xxxxxxxx.supabase.co">
+        </label>
+        <label>
+          anonキー
+          <input id="cloudKeyInput" type="password" placeholder="eyJhbGciOi...">
+        </label>
+        <label>
+          バケット名
+          <input id="cloudBucketInput" type="text" placeholder="todo-backups">
+          <small>TodoMemoと同じバケットを共有できます。</small>
+        </label>
+        <div class="dialog-actions">
+          <button class="primary-button" type="submit">設定を保存</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="cloudSignInDialog">
+      <form id="cloudSignInForm">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">CLOUD</p>
+            <h2>クラウドにログイン</h2>
+          </div>
+          <button class="close-button" type="button" id="closeCloudSignIn" aria-label="閉じる">×</button>
+        </div>
+        <p class="field-help">Supabaseに登録したメールアドレスとパスワードを入力してください。</p>
+        <label>
+          メールアドレス
+          <input id="cloudEmailInput" type="text" inputmode="email" autocomplete="username" required>
+        </label>
+        <label>
+          パスワード
+          <input id="cloudPasswordInput" type="password" autocomplete="current-password" required>
+        </label>
+        <p id="cloudSignInMessage" class="cloud-sign-in-message" role="status" aria-live="polite"></p>
+        <div class="dialog-actions">
+          <button class="primary-button" type="submit" id="cloudSignInSubmit">ログイン</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="cloudHistoryDialog" class="wide-dialog">
+      <div class="dialog-body">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">CLOUD</p>
+            <h2>クラウド履歴から戻す</h2>
+          </div>
+          <button class="close-button" type="button" id="closeCloudHistory" aria-label="閉じる">×</button>
+        </div>
+        <p class="field-help">
+          クラウドが上書きされるたびに、上書き前の内容を1件ずつ保管します。直近30件はすべて残し、それより古いものは1日1件で最大30日分を残します。戻す操作も新しい版として記録するため、他のPCにも安全に反映されます。
+        </p>
+        <ul id="cloudHistoryList" class="cloud-history-list"></ul>
+        <p id="cloudHistoryEmpty" class="field-help">まだ履歴はありません</p>
+      </div>
+    </dialog>
+
+    <dialog id="cloudConflictDialog" class="wide-dialog">
+      <div class="dialog-body">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">CLOUD</p>
+            <h2>どちらの内容を残しますか？</h2>
+          </div>
+        </div>
+        <p id="cloudConflictReason" class="field-help"></p>
+
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th scope="col"><span class="visually-hidden">項目</span></th>
+              <th scope="col">クラウド（他のPCを含む最新）</th>
+              <th scope="col">このPC（未同期の内容）</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">最終更新</th>
+              <td id="cloudConflictRemoteUpdatedAt"></td>
+              <td id="cloudConflictLocalUpdatedAt"></td>
+            </tr>
+            <tr>
+              <th scope="row">グループ</th>
+              <td id="cloudConflictRemoteGroups"></td>
+              <td id="cloudConflictLocalGroups"></td>
+            </tr>
+            <tr>
+              <th scope="row">リンク</th>
+              <td id="cloudConflictRemoteBookmarks"></td>
+              <td id="cloudConflictLocalBookmarks"></td>
+            </tr>
+            <tr>
+              <th scope="row">ドメイン</th>
+              <td id="cloudConflictRemoteDomains"></td>
+              <td id="cloudConflictLocalDomains"></td>
+            </tr>
+          </tbody>
+        </table>
+        <p id="cloudConflictRemoteDevice" class="field-help"></p>
+
+        <p id="cloudConflictWarning" class="compare-warning" role="alert" hidden></p>
+        <p class="field-help">
+          選ばなかった内容はクラウド履歴へ退避するため、あとから「クラウド履歴」で元に戻せます。
+        </p>
+
+        <label id="cloudConflictAcknowledgeRow" class="acknowledge" hidden>
+          <input id="cloudConflictAcknowledge" type="checkbox">
+          <span>古い／少ない内容でクラウドを上書きし、他のPCの変更が失われることを確認しました</span>
+        </label>
+
+        <div class="dialog-actions">
+          <button class="cancel-button" type="button" id="cloudConflictLater">あとで決める</button>
+          <button class="outline-button" type="button" id="cloudConflictUseLocal">このPCの内容を残す</button>
+          <button class="primary-button" type="button" id="cloudConflictUseRemote">クラウドの内容を残す</button>
+        </div>
+      </div>
     </dialog>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script src="dev-preview.js"></script>
+    <script src="sync-core.js"></script>
+    <script src="supabase-client.js"></script>
     <script src="storage.js"></script>
     <script src="options.js"></script>
+    <script src="cloud-sync.js"></script>
   </body>
 </html>

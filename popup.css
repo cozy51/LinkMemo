@@ -15,6 +15,12 @@
   box-sizing: border-box;
 }
 
+/* The cloud strip hides its buttons with the `hidden` property, which a class
+   that sets `display` would otherwise beat. */
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   margin: 0;
@@ -718,6 +724,70 @@ dialog input[readonly] {
 .toast.is-visible {
   opacity: 1;
   transform: translate(-50%, 0);
+}
+
+.cloud-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 11px;
+  border: 1px solid var(--line, #e4e8f0);
+  border-radius: 11px;
+  background: #fff;
+}
+
+.cloud-sync-texts {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cloud-sync-status {
+  overflow: hidden;
+  color: #6f7990;
+  font-size: 11px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cloud-sync-status[data-state="saved"] { color: #24734b; }
+.cloud-sync-status[data-state="saving"] { color: #6f7990; }
+.cloud-sync-status[data-state="error"] { color: #d94b62; }
+
+.cloud-sync-detail {
+  color: #8a94a8;
+  font-size: 9px;
+}
+
+.cloud-strip-actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+.cloud-chip {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid #dce2ed;
+  border-radius: 9px;
+  color: #56617a;
+  background: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.cloud-chip:hover {
+  border-color: #bec9db;
+  color: #4969ed;
+}
+
+.cloud-chip.is-danger {
+  border-color: rgba(217, 75, 98, 0.4);
+  color: #d94b62;
+  background: #fff5f7;
 }
 
 @media (prefers-reduced-motion: reduce) {
