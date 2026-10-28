@@ -222,7 +222,7 @@
 
   function createGroup(group, groupIndex) {
     const article = document.createElement("article");
-    article.className = "editor-group";
+    article.className = `editor-group${group.collapsed ? " is-collapsed" : ""}`;
     article.dataset.color = group.color;
 
     const header = document.createElement("header");
@@ -246,6 +246,19 @@
 
     const actions = document.createElement("div");
     actions.className = "row-actions";
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "icon-button action-toggle";
+    toggle.title = group.collapsed ? "リンクを表示" : "リンクを折りたたむ";
+    toggle.setAttribute("aria-label", `${group.name}を${group.collapsed ? "展開" : "折りたたむ"}`);
+    toggle.setAttribute("aria-expanded", String(!group.collapsed));
+    toggle.addEventListener("click", async () => {
+      // Same flag the popup folds with, so both views open the way it was left.
+      group.collapsed = !group.collapsed;
+      data = await Store.save(data);
+      render();
+    });
+
     const add = document.createElement("button");
     add.type = "button";
     add.className = "small-button accent";
@@ -270,7 +283,7 @@
         await persist("グループを削除しました");
       });
     }, "action-delete");
-    actions.append(add, up, down, edit, remove);
+    actions.append(toggle, add, up, down, edit, remove);
 
     header.append(emoji, titleWrap, actions);
     article.append(header);
