@@ -19,7 +19,8 @@ const {
   selectExpiredLinkMemoHistory,
   formatLinkMemoElapsed,
   describeLinkMemoDevice,
-  sanitizeLinkMemoSyncState
+  sanitizeLinkMemoSyncState,
+  normalizeLinkMemoUrl
 } = require("../sync-core.js");
 
 function group(id, urls, extra = {}) {
@@ -342,6 +343,25 @@ cases.forEach(([label, input, expected]) => {
   assert.strictEqual(formatLinkMemoElapsed(30 * 1000), "1分未満");
   assert.strictEqual(formatLinkMemoElapsed(45 * 60 * 1000), "45分");
   assert.strictEqual(formatLinkMemoElapsed(3 * 24 * 3600 * 1000), "約3日");
+}
+
+{
+  assert.strictEqual(normalizeLinkMemoUrl("example.com"), "https://example.com/");
+  assert.strictEqual(
+    normalizeLinkMemoUrl("chrome-extension://ahgjdkhicckaplggmpgppecelohiohji/library.html"),
+    "chrome-extension://ahgjdkhicckaplggmpgppecelohiohji/library.html",
+    "拡張機能のページも登録できる"
+  );
+  assert.strictEqual(
+    normalizeLinkMemoUrl("extension://ahgjdkhicckaplggmpgppecelohiohji/library.html"),
+    "chrome-extension://ahgjdkhicckaplggmpgppecelohiohji/library.html",
+    "Edgeのアドレスバー表記は実際に開けるアドレスへ直す"
+  );
+  assert.strictEqual(normalizeLinkMemoUrl("chrome://settings/"), "chrome://settings/");
+  assert.strictEqual(normalizeLinkMemoUrl("edge://settings/"), "edge://settings/");
+  assert.strictEqual(normalizeLinkMemoUrl("javascript:alert(1)"), "", "スクリプトは登録させない");
+  assert.strictEqual(normalizeLinkMemoUrl("file:///C:/a.txt"), "");
+  assert.strictEqual(normalizeLinkMemoUrl("data:text/html,x"), "");
 }
 
 console.log("cloud sync: すべてのテストに合格しました");

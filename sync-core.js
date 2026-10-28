@@ -31,14 +31,22 @@ function createLinkMemoItemFingerprint(item) {
   return (hash >>> 0).toString(36);
 }
 
+// Besides web pages, extension pages (chrome-extension://) and the browser's own
+// pages (chrome://, edge://) can be opened with chrome.tabs.create, so they are
+// accepted too.  Anything else — javascript:, data:, file: — is rejected.
+const LINKMEMO_ALLOWED_PROTOCOLS = ["http:", "https:", "chrome-extension:", "chrome:", "edge:"];
+
 function normalizeLinkMemoUrl(value) {
-  const input = String(value ?? "").trim();
+  let input = String(value ?? "").trim();
   if (!input) return "";
 
+  // Edge shows its extension pages as "extension://<id>/..." in the address bar,
+  // but they can only be opened by their real chrome-extension:// address.
+  input = input.replace(/^extension:\/\//i, "chrome-extension://");
   const withProtocol = /^[a-z][a-z\d+.-]*:/i.test(input) ? input : `https://${input}`;
   try {
     const url = new URL(withProtocol);
-    if (!["http:", "https:"].includes(url.protocol)) return "";
+    if (!LINKMEMO_ALLOWED_PROTOCOLS.includes(url.protocol)) return "";
     return url.href;
   } catch {
     return "";

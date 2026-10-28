@@ -482,7 +482,7 @@
     const url = Store.normalizeUrl(elements.bookmarkUrl.value);
 
     if (!targetGroup || !title || !url) {
-      elements.bookmarkError.textContent = "タイトルと有効なWebページのURLを入力してください。";
+      elements.bookmarkError.textContent = "タイトルと有効なURL（Webページ・拡張機能のページ）を入力してください。";
       return;
     }
 
