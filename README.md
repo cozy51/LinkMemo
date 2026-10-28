@@ -24,11 +24,15 @@
 
 `vercel.json` でセキュリティ用のヘッダーを設定し、`.vercelignore` でテスト用スクリプトやPDFを公開対象から外しています。
 
-ローカルで確認する場合は、ルートで簡易サーバーを起動して `http://localhost:8000/` を開きます。
+### ローカルで動かす
+
+Node.js 18以上があれば、追加のパッケージなしで起動できます（`npm install` は不要です）。
 
 ```bash
-python3 -m http.server 8000
+npm run dev
 ```
+
+`http://localhost:3000/` を開きます。ポートを変える場合は環境変数 `PORT` を指定してください。
 
 ## 使い方
 
@@ -98,10 +102,8 @@ TodoMemoと同じバケットを共有できるよう、ファイル名にアプ
 
 同期の判断ロジックと、実際の同期・履歴・復元の流れ、インポート前の確認を検証します。
 
-```
-node scripts/test_cloud_sync.js
-node scripts/test_cloud_sync_flow.js
-node scripts/test_import_guard.js
+```bash
+npm test
 ```
 
 ## PDFマニュアル
