@@ -1,12 +1,12 @@
 // Supabase is the authoritative copy of the groups and links; chrome.storage.local
-// is the offline copy of it.  Every upload is guarded by the revision the local
+// (the browser's localStorage, via web-platform.js) is the offline copy of it.  Every upload is guarded by the revision the local
 // copy is based on, so a PC that has been closed, offline, or restored from an
 // old file can never quietly replace newer work made on another PC.  Whenever
 // the two sides genuinely disagree the user decides, and the losing side is
 // archived to the cloud history first so nothing is lost either way.
 //
-// The editor page declares the whole panel; the popup declares only the status
-// line and a couple of buttons, so every control here is optional.
+// Every control here is looked up optionally, so the engine also runs against
+// a page that declares only part of the panel (as the tests do).
 (function setupCloudSync() {
   const Store = globalThis.LinkMemoStore;
 
@@ -493,12 +493,7 @@
     setStatus(pausedMessage, "error");
     updateControls();
 
-    // The popup has no room for the choice, so it points at the editor, where
-    // the same pending conflict is waiting.
-    if (!els.conflictDialog) {
-      setDetail("編集画面（歯車）を開いて、残す内容を選んでください");
-      return;
-    }
+    if (!els.conflictDialog) return;
     setDetail("「同期の確認」から残す方を選んでください");
 
     const localUpdatedAt = await Store.loadUpdatedAt();
@@ -915,10 +910,6 @@
   });
   els.resolveButton?.addEventListener("click", () => {
     if (!pendingConflict) return;
-    if (!els.conflictDialog) {
-      chrome.runtime.openOptionsPage?.();
-      return;
-    }
     openConflictDialog();
   });
   els.conflictLaterButton?.addEventListener("click", () => {

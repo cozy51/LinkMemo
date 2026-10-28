@@ -58,6 +58,8 @@
     domainCount: document.querySelector("#domainCount"),
     saveStatus: document.querySelector("#saveStatus"),
     addGroup: document.querySelector("#addGroup"),
+    openAll: document.querySelector("#openAll"),
+    appVersion: document.querySelector("#appVersion"),
     exportData: document.querySelector("#exportData"),
     importData: document.querySelector("#importData"),
     groupDialog: document.querySelector("#groupDialog"),
@@ -101,7 +103,9 @@
   };
 
   function faviconUrl(url) {
-    return `/_favicon/?pageUrl=${encodeURIComponent(url)}&size=64`;
+    // The extension's own /_favicon/ endpoint is not available to a web page, so
+    // icons come from Google's public favicon service instead.
+    return `https://www.google.com/s2/favicons?sz=64&domain_url=${encodeURIComponent(url)}`;
   }
 
   function setSaving(isSaving) {
@@ -160,26 +164,69 @@
     return true;
   }
 
-  // Same as the popup's "まとめて開く": one tab per URL, the first one focused.
-  async function openGroup(group, button) {
-    const unique = [...new Map(group.bookmarks.map((bookmark) => [bookmark.url, bookmark])).values()];
+  // A web page cannot open browser or extension pages, and the browser lets it
+  // open only one tab per click unless pop-ups are allowed for the site.  Both
+  // cases are explained instead of failing silently.
+  async function explainOpenError(error) {
+    if (error?.reason === "unsupported") {
+      try {
+        await navigator.clipboard.writeText(error.url);
+        showToast("ブラウザーの設定画面・拡張機能のページは直接開けないため、URLをコピーしました");
+      } catch {
+        showToast("ブラウザーの設定画面・拡張機能のページは直接開けません");
+      }
+      return;
+    }
+    if (error?.reason === "blocked") {
+      showToast("ポップアップがブロックされました。アドレスバーからこのサイトのポップアップを許可してください");
+      return;
+    }
+    showToast("一部のタブを開けませんでした");
+  }
+
+  // One tab per URL, in the order they are listed.
+  async function openBookmarks(bookmarks, button, label) {
+    const unique = [...new Map(bookmarks.map((bookmark) => [bookmark.url, bookmark])).values()];
     if (!unique.length) return;
 
     button.disabled = true;
+    let opened = 0;
+    let firstError = null;
     try {
-      const createdTabs = [];
       for (const bookmark of unique) {
-        createdTabs.push(await chrome.tabs.create({ url: bookmark.url, active: false }));
+        try {
+          await chrome.tabs.create({ url: bookmark.url, active: opened === 0 });
+          opened += 1;
+        } catch (error) {
+          firstError ||= error;
+          // Once the browser blocks one pop-up it blocks the rest of this click.
+          if (error?.reason === "blocked") break;
+        }
       }
-      if (createdTabs[0]?.id != null && typeof chrome.tabs.update === "function") {
-        await chrome.tabs.update(createdTabs[0].id, { active: true });
+      if (firstError) {
+        await explainOpenError(firstError);
+      } else {
+        showToast(`${label}：${opened}件のタブを開きました`);
       }
-      showToast(`${group.name}：${unique.length}件のタブを開きました`);
-    } catch {
-      showToast("一部のタブを開けませんでした");
     } finally {
       button.disabled = false;
     }
+  }
+
+  function openGroup(group, button) {
+    return openBookmarks(group.bookmarks, button, group.name);
+  }
+
+  async function openAll() {
+    const bookmarks = Store.getAllBookmarks(data);
+    const count = new Set(bookmarks.map((bookmark) => bookmark.url)).size;
+    if (!count) return;
+    const approved = await askConfirmation({
+      title: "すべてのタブを開きますか？",
+      message: `登録されている${count}件のタブを一度に開きます。開いたタブは自動では閉じません。よろしいですか？`,
+      confirmLabel: "開く"
+    });
+    if (approved) await openBookmarks(bookmarks, elements.openAll, "すべてのタブ");
   }
 
   function createBookmarkRow(group, bookmark, bookmarkIndex) {
@@ -214,14 +261,18 @@
     titleLine.append(kind, title);
     copy.append(titleLine, url);
 
-    // Clicking the link itself opens just that page, as it does in the popup.
+    // Clicking the link itself opens just that page.
     const link = document.createElement("a");
     link.className = "editor-bookmark-link";
     link.href = bookmark.url;
     link.title = `${bookmark.title}\n${bookmark.url}`;
     link.addEventListener("click", async (event) => {
       event.preventDefault();
-      await chrome.tabs.create({ url: bookmark.url, active: true });
+      try {
+        await chrome.tabs.create({ url: bookmark.url, active: true });
+      } catch (error) {
+        await explainOpenError(error);
+      }
     });
     link.append(iconWrap, copy);
 
@@ -286,7 +337,7 @@
     toggle.setAttribute("aria-label", `${group.name}を${group.collapsed ? "展開" : "折りたたむ"}`);
     toggle.setAttribute("aria-expanded", String(!group.collapsed));
     toggle.addEventListener("click", async () => {
-      // Same flag the popup folds with, so both views open the way it was left.
+      // Saved with the data, so the group opens the way it was left.
       group.collapsed = !group.collapsed;
       data = await Store.save(data);
       render();
@@ -357,6 +408,7 @@
     elements.groupCount.textContent = String(data.groups.length);
     elements.bookmarkCount.textContent = String(bookmarks.length);
     elements.domainCount.textContent = String(domains.size);
+    elements.openAll.disabled = bookmarks.length === 0;
 
     if (data.groups.length) {
       elements.groupList.replaceChildren(...data.groups.map(createGroup));
@@ -686,10 +738,12 @@
 
   async function init() {
     buildChoiceControls();
+    elements.appVersion.textContent = `v${chrome.runtime.getManifest().version}`;
     data = await Store.load();
     render();
 
     elements.addGroup.addEventListener("click", () => showGroupDialog());
+    elements.openAll.addEventListener("click", openAll);
     elements.groupForm.addEventListener("submit", saveGroup);
     elements.bookmarkForm.addEventListener("submit", saveBookmark);
     elements.exportData.addEventListener("click", exportData);
