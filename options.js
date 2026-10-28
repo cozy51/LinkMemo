@@ -192,6 +192,17 @@
     titleLine.append(kind, title);
     copy.append(titleLine, url);
 
+    // Clicking the link itself opens just that page, as it does in the popup.
+    const link = document.createElement("a");
+    link.className = "editor-bookmark-link";
+    link.href = bookmark.url;
+    link.title = `${bookmark.title}\n${bookmark.url}`;
+    link.addEventListener("click", async (event) => {
+      event.preventDefault();
+      await chrome.tabs.create({ url: bookmark.url, active: true });
+    });
+    link.append(iconWrap, copy);
+
     const actions = document.createElement("div");
     actions.className = "row-actions";
 
@@ -216,7 +227,7 @@
     }, "action-delete");
     actions.append(up, down, edit, remove);
 
-    row.append(iconWrap, copy, actions);
+    row.append(link, actions);
     return row;
   }
 
