@@ -372,6 +372,24 @@ main {
   background: var(--group-soft);
 }
 
+.small-button.group-open {
+  border-color: transparent;
+  color: var(--group-accent);
+  background: var(--group-soft);
+  font-weight: 750;
+}
+
+.small-button.group-open:hover:not(:disabled) {
+  color: var(--group-accent);
+  filter: saturate(1.15) brightness(0.97);
+}
+
+.small-button.group-open:disabled {
+  cursor: not-allowed;
+  color: #9da6b9;
+  background: #f0f2f6;
+}
+
 .icon-button {
   width: 36px;
   padding: 0;
@@ -462,7 +480,7 @@ main {
 
 .editor-bookmark {
   display: grid;
-  grid-template-columns: 40px 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 11px;
   min-height: 70px;
@@ -491,6 +509,28 @@ main {
 .editor-favicon img {
   width: 30px;
   height: 30px;
+}
+
+.editor-bookmark-link {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  margin: -4px;
+  padding: 4px;
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.editor-bookmark-link:hover {
+  background: var(--group-soft);
+}
+
+.editor-bookmark-link:hover .editor-bookmark-title {
+  color: var(--group-accent);
+  text-decoration: underline;
 }
 
 .editor-bookmark-copy {
