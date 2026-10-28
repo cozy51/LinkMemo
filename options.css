@@ -372,6 +372,24 @@ main {
   background: var(--group-soft);
 }
 
+.small-button.group-open {
+  border-color: transparent;
+  color: var(--group-accent);
+  background: var(--group-soft);
+  font-weight: 750;
+}
+
+.small-button.group-open:hover:not(:disabled) {
+  color: var(--group-accent);
+  filter: saturate(1.15) brightness(0.97);
+}
+
+.small-button.group-open:disabled {
+  cursor: not-allowed;
+  color: #9da6b9;
+  background: #f0f2f6;
+}
+
 .icon-button {
   width: 36px;
   padding: 0;

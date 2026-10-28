@@ -160,6 +160,28 @@
     return true;
   }
 
+  // Same as the popup's "まとめて開く": one tab per URL, the first one focused.
+  async function openGroup(group, button) {
+    const unique = [...new Map(group.bookmarks.map((bookmark) => [bookmark.url, bookmark])).values()];
+    if (!unique.length) return;
+
+    button.disabled = true;
+    try {
+      const createdTabs = [];
+      for (const bookmark of unique) {
+        createdTabs.push(await chrome.tabs.create({ url: bookmark.url, active: false }));
+      }
+      if (createdTabs[0]?.id != null && typeof chrome.tabs.update === "function") {
+        await chrome.tabs.update(createdTabs[0].id, { active: true });
+      }
+      showToast(`${group.name}：${unique.length}件のタブを開きました`);
+    } catch {
+      showToast("一部のタブを開けませんでした");
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   function createBookmarkRow(group, bookmark, bookmarkIndex) {
     const row = document.createElement("li");
     row.className = "editor-bookmark";
@@ -270,6 +292,13 @@
       render();
     });
 
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "small-button group-open";
+    open.textContent = "まとめて開く";
+    open.disabled = group.bookmarks.length === 0;
+    open.addEventListener("click", () => openGroup(group, open));
+
     const add = document.createElement("button");
     add.type = "button";
     add.className = "small-button accent";
@@ -294,7 +323,7 @@
         await persist("グループを削除しました");
       });
     }, "action-delete");
-    actions.append(toggle, add, up, down, edit, remove);
+    actions.append(toggle, open, add, up, down, edit, remove);
 
     header.append(emoji, titleWrap, actions);
     article.append(header);
