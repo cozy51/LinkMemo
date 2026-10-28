@@ -1,0 +1,14 @@
+{
+  "name": "linkmemo",
+  "version": "2.0.0",
+  "private": true,
+  "description": "仕事で使うWebページをグループごとにまとめて開くWebアプリ",
+  "scripts": {
+    "dev": "node scripts/dev-server.js",
+    "start": "node scripts/dev-server.js",
+    "test": "node scripts/test_cloud_sync.js && node scripts/test_cloud_sync_flow.js && node scripts/test_import_guard.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
