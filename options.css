@@ -288,6 +288,15 @@ main {
   background: linear-gradient(90deg, var(--group-soft), #fff 78%);
 }
 
+.editor-group.is-collapsed .editor-group-header {
+  border-bottom: 0;
+}
+
+.editor-group.is-collapsed .editor-bookmarks,
+.editor-group.is-collapsed .editor-empty {
+  display: none;
+}
+
 .editor-emoji {
   display: grid;
   place-items: center;
@@ -388,6 +397,29 @@ main {
   background: #eef2ff;
   font-family: "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
   font-size: 19px;
+}
+
+.icon-button.action-toggle {
+  display: grid;
+  place-items: center;
+  border-color: color-mix(in srgb, var(--group-accent) 22%, transparent);
+  border-radius: 50%;
+  color: var(--group-accent);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.icon-button.action-toggle::before {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  content: "";
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.18s ease;
+}
+
+.editor-group.is-collapsed .icon-button.action-toggle::before {
+  transform: translateX(-2px) rotate(-45deg);
 }
 
 .icon-button.action-edit {
