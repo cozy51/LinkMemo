@@ -3,16 +3,19 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>LinkMemo 登録内容の編集</title>
+    <title>LinkMemo</title>
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+    <link rel="icon" href="icons/icon32.png" sizes="32x32" type="image/png">
+    <link rel="apple-touch-icon" href="icons/icon128.png">
     <link rel="stylesheet" href="options.css">
   </head>
   <body>
     <header class="topbar">
-      <a class="brand" href="popup.html" aria-label="LinkMemo">
+      <a class="brand" href="./" aria-label="LinkMemo">
         <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
         <div>
           <p>WORK LAUNCHER</p>
-          <strong>LinkMemo</strong>
+          <strong>LinkMemo <span class="app-version" id="appVersion">v0.0.0</span></strong>
         </div>
       </a>
       <div class="topbar-tools">
@@ -38,11 +41,7 @@
 
     <main>
       <section class="page-title">
-        <div>
-          <p class="eyebrow">BOOKMARK MANAGER</p>
-          <h1>登録内容の編集</h1>
-          <p class="lead">仕事の流れに合わせて、リンクをグループにまとめておきましょう。</p>
-        </div>
+        <button class="launch-button" id="openAll" type="button">▶ すべてのタブを開く</button>
         <button class="primary-button" id="addGroup" type="button">＋ 新しいグループ</button>
       </section>
 
@@ -98,7 +97,7 @@
         <fieldset>
           <legend>グループ見出しの背景色</legend>
           <div class="color-options" id="colorOptions"></div>
-          <p class="field-help">ポップアップのグループ見出しやアクセントに反映されます。</p>
+          <p class="field-help">グループ見出しやアクセントに反映されます。</p>
         </fieldset>
         <p class="form-error" id="groupError"></p>
         <div class="dialog-actions">
@@ -350,7 +349,7 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="dev-preview.js"></script>
+    <script src="web-platform.js"></script>
     <script src="sync-core.js"></script>
     <script src="supabase-client.js"></script>
     <script src="storage.js"></script>

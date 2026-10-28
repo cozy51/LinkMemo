@@ -1,4 +1,4 @@
-// A DOM small enough to run the extension's scripts under Node, built from the
+// A DOM small enough to run the app's scripts under Node, built from the
 // ids a page actually declares.  Asking for an element the page does not have
 // throws, so a control the code talks to but the page never declares fails the
 // test that uses it.
@@ -74,7 +74,7 @@ function createElement(tag = "div") {
 
 // `strict` decides what a missing id means.  A page that owns the whole feature
 // must declare every control its scripts talk to, so asking for one it does not
-// have is a test failure; the popup deliberately declares only part of the cloud
+// have is a test failure; a page that deliberately declares only part of the cloud
 // panel, and there a missing control is the real DOM's `null`.
 function createDocument(html, source = "the page", { strict = true } = {}) {
   const ids = [...html.matchAll(/id="([^"]+)"/g)].map((match) => match[1]);

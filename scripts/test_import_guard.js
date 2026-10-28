@@ -2,7 +2,7 @@
 //
 // Importing a file is the one action that replaces everything on purpose, so it
 // is the one action that has to explain itself first.  The editor is loaded as
-// options.html loads it, against a fake page and a fake chrome.storage, and the
+// index.html loads it, against a fake page and a fake chrome.storage, and the
 // dialog is driven the way a person would drive it.
 const fs = require("fs");
 const path = require("path");
@@ -10,7 +10,7 @@ const vm = require("vm");
 const { createDocument, settle } = require("./fake_page.js");
 
 const root = path.join(__dirname, "..");
-const html = fs.readFileSync(path.join(root, "options.html"), "utf8");
+const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const sources = ["sync-core.js", "storage.js", "options.js"]
   .map((name) => ({ name, code: fs.readFileSync(path.join(root, name), "utf8") }));
 
@@ -40,11 +40,11 @@ function createEditor({ groups = [], updatedAt = "" } = {}) {
     ...(groups.length ? { linkMemoData: { version: 1, groups } } : {}),
     ...(updatedAt ? { linkMemoDataUpdatedAt: updatedAt } : {})
   };
-  const doc = createDocument(html, "options.html");
+  const doc = createDocument(html, "index.html");
   const timers = new Set();
 
   const chrome = {
-    runtime: { getManifest: () => ({ version: "1.3.0" }) },
+    runtime: { getManifest: () => ({ version: "2.0.0" }) },
     storage: {
       local: {
         async get(keys) {

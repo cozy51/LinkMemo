@@ -114,6 +114,14 @@ button,
   font-size: 18px;
 }
 
+.app-version {
+  margin-left: 4px;
+  color: #8a94aa;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
 .save-status {
   display: flex;
   align-items: center;
@@ -138,14 +146,39 @@ button,
 main {
   width: min(1040px, calc(100% - 60px));
   margin: 0 auto;
-  padding: 49px 0 70px;
+  padding: 28px 0 70px;
 }
 
 .page-title {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 30px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.launch-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(135deg, #344567, #18233c);
+  box-shadow: 0 6px 14px rgba(24, 35, 60, 0.28);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.launch-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #293957, #10182a);
+}
+
+.launch-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .eyebrow {
@@ -154,19 +187,6 @@ main {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.18em;
-}
-
-.page-title h1 {
-  margin: 0;
-  font-size: clamp(30px, 4vw, 42px);
-  line-height: 1.25;
-  letter-spacing: -0.02em;
-}
-
-.lead {
-  margin: 11px 0 0;
-  color: var(--muted);
-  font-size: 14px;
 }
 
 .primary-button,
@@ -200,7 +220,7 @@ main {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  margin-top: 32px;
+  margin-top: 20px;
 }
 
 .stats div {

@@ -2,7 +2,7 @@
 //
 // The engine is loaded exactly as the editor page loads it, against a fake
 // Supabase (an in-memory bucket behind a fake `fetch`) and a fake page built
-// from the ids in options.html.  Two "PCs" share the bucket, so the paths that
+// from the ids in index.html.  Two "PCs" share the bucket, so the paths that
 // matter — seeding, pulling, conflicting, restoring, and refusing to shrink the
 // cloud — are exercised for real, and a control the engine talks to but the
 // page never declares fails the test.
@@ -12,8 +12,7 @@ const vm = require("vm");
 const { createDocument, settle } = require("./fake_page.js");
 
 const root = path.join(__dirname, "..");
-const html = fs.readFileSync(path.join(root, "options.html"), "utf8");
-const popupHtml = fs.readFileSync(path.join(root, "popup.html"), "utf8");
+const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const sources = ["sync-core.js", "supabase-client.js", "storage.js", "cloud-sync.js"]
   .map((name) => ({ name, code: fs.readFileSync(path.join(root, name), "utf8") }));
 
@@ -93,10 +92,10 @@ function createCloud() {
   };
 }
 
-// --- a PC running the extension --------------------------------------------
+// --- a PC running the app ----------------------------------------------------
 
 function createDevice(cloud, {
-  groups = [], updatedAt = "", config = null, session = null, page = "options"
+  groups = [], updatedAt = "", config = null, session = null
 } = {}) {
   const store = {
     ...(groups.length ? { linkMemoData: { version: 1, groups } } : {}),
@@ -104,13 +103,11 @@ function createDevice(cloud, {
     ...(config ? { linkMemoCloudConfig: config } : {}),
     ...(session ? { linkMemoCloudSession: session } : {})
   };
-  const doc = page === "popup"
-    ? createDocument(popupHtml, "popup.html", { strict: false })
-    : createDocument(html, "options.html");
+  const doc = createDocument(html, "index.html");
   const timers = new Set();
 
   const chrome = {
-    runtime: { getManifest: () => ({ version: "1.3.0" }), openOptionsPage() {} },
+    runtime: { getManifest: () => ({ version: "2.0.0" }) },
     storage: {
       local: {
         async get(keys) {
@@ -387,33 +384,6 @@ const ago = (hours) => new Date(Date.now() - hours * HOUR).toISOString();
   // is exactly the divergence the engine must not resolve on its own.
   check(fresh.el("cloudConflictDialog").open, true, "Its unsynced link is not silently dropped");
 
-  // 11. The popup runs the same engine with only a status line: a link added
-  // there still reaches the cloud, and a conflict points at the editor rather
-  // than opening a dialog the popup does not have.
-  const popup = createDevice(cloud, { page: "popup", config: CONFIG, session: SESSION });
-  await settle();
-  check(popup.status(), "クラウドと同期済み", "The popup syncs on open");
-  check(popup.el("cloudSyncNow").hidden, false, "…and offers the manual sync");
-  check(popup.el("cloudSyncResolve").hidden, true, "…with nothing to resolve yet");
-
-  const revisionBefore = cloud.latest().sync.revision;
-  await popup.edit([group("g1", ["a", "b", "c"])]);
-  check(cloud.latest().sync.revision, revisionBefore + 1, "A link added in the popup is published");
-
-  // The cloud moves on without this popup knowing, and the popup then edits.
-  first.sync();
-  await settle();
-  await first.edit([group("g1", ["a", "b", "c"]), group("g4", ["x", "y"])]);
-  check(cloud.latest().counts.groups, 2, "The editor publishes its change first");
-  await popup.edit([group("g1", ["a", "b", "c", "d"])], ago(6));
-  check(popup.el("cloudSyncResolve").hidden, false, "The popup shows there is something to decide");
-  check(
-    popup.el("cloudSyncDetail").textContent,
-    "編集画面（歯車）を開いて、残す内容を選んでください",
-    "…and sends the user where the choice can be made"
-  );
-  check(cloud.latest().counts.groups, 2, "Nothing is published from the popup while it waits");
-
-  [first, second, fresh, popup].forEach((device) => device.stop());
+  [first, second, fresh].forEach((device) => device.stop());
   console.log("cloud sync flow: すべてのテストに合格しました");
 })();

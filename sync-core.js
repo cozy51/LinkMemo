@@ -1,4 +1,4 @@
-// Pure helpers shared by the popup, the editor, and the cloud sync engine.
+// Pure helpers shared by the page and the cloud sync engine.
 // Nothing here touches the network, chrome.storage, or the DOM, so the rules
 // that decide which copy of the data wins can be tested on their own
 // (`node scripts/test_cloud_sync.js`).
