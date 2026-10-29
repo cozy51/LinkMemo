@@ -32,6 +32,8 @@
   }
 
   const els = {
+    panel: pick("cloudSyncPanel"),
+    saveStatus: pick("saveStatus"),
     status: pick("cloudSyncStatus"),
     detail: pick("cloudSyncDetail"),
     settingsButton: pick("cloudSyncSettings"),
@@ -97,6 +99,11 @@
     if (!els.status) return;
     els.status.textContent = message;
     els.status.dataset.state = state;
+    if (els.panel) els.panel.dataset.state = state;
+    // The local "保存済み" dot is green only while edits also reach the cloud.
+    if (els.saveStatus) {
+      els.saveStatus.dataset.cloud = state === "signed-out" || state === "local-only" ? "off" : "on";
+    }
   }
 
   function setDetail(message) {
@@ -742,14 +749,14 @@
     pendingConflict = null;
     updateControls();
     if (!isConfigured()) {
-      setStatus("クラウド同期は未設定（ローカル保存のみ）", "idle");
+      setStatus("クラウド同期は未設定（ローカル保存のみ）", "local-only");
       setDetail(els.settingsButton
         ? "「クラウド設定」でSupabaseの接続先を登録します"
         : "編集画面（歯車）の「クラウド設定」から登録します");
       return;
     }
-    setStatus("ログインするとクラウドと同期します", "idle");
-    setDetail("ログアウト中の変更はこのPCだけに保存されます");
+    setStatus("ログアウト中：クラウドと同期していません", "signed-out");
+    setDetail("変更はこのPCだけに保存されます。ログインしてください");
   }
 
   function createClient() {
@@ -940,6 +947,7 @@
       await startSignedInSession();
     } else {
       showSignedOut();
+      toast("ログアウト中です。変更はクラウドに同期されません");
     }
   })();
 })();

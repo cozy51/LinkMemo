@@ -138,6 +138,19 @@ button,
   box-shadow: 0 0 0 4px #e5f6ef;
 }
 
+/* Saved on this PC only (signed out of / no cloud sync): not the all-clear green. */
+.save-status[data-cloud="off"] span {
+  background: var(--danger);
+  box-shadow: 0 0 0 4px #fde8ec;
+}
+
+.save-status[data-cloud="off"]::after {
+  content: "（このPCのみ）";
+  margin-left: -7px;
+  color: var(--danger);
+  font-weight: 700;
+}
+
 .save-status.is-saving span {
   background: #efaa43;
   box-shadow: 0 0 0 4px #fff1da;
@@ -914,6 +927,29 @@ legend {
 .cloud-sync-status[data-state="saved"] { color: #24734b; }
 .cloud-sync-status[data-state="saving"] { color: var(--muted); }
 .cloud-sync-status[data-state="error"] { color: var(--danger); }
+.cloud-sync-status[data-state="local-only"] { color: #9b6b0a; }
+.cloud-sync-status[data-state="signed-out"] { color: var(--danger); }
+
+.cloud-sync-status[data-state="signed-out"]::before,
+.cloud-sync-status[data-state="local-only"]::before {
+  content: "⚠ ";
+}
+
+/* Signed out: the panel itself warns, and sign-in is the obvious next step. */
+.cloud-sync-panel[data-state="signed-out"] {
+  padding: 4px 6px 4px 12px;
+  border: 1px solid #f4b8c3;
+  border-radius: 10px;
+  background: #fff1f3;
+}
+
+.cloud-sync-panel[data-state="signed-out"] .cloud-sync-detail { color: #b23a50; }
+
+.cloud-sync-panel[data-state="signed-out"] #cloudSyncSignIn {
+  border-color: var(--danger);
+  color: #fff;
+  background: var(--danger);
+}
 
 .cloud-sync-detail {
   color: #8a94a8;

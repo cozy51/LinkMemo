@@ -361,7 +361,9 @@ const ago = (hours) => new Date(Date.now() - hours * HOUR).toISOString();
   await settle();
   check(fresh.store.linkMemoCloudConfig.url, CONFIG.url, "A trailing slash in the URL is dropped");
   check(fresh.store.linkMemoCloudConfig.bucket, "todo-backups", "An empty bucket falls back to the default");
-  check(fresh.status(), "ログインするとクラウドと同期します", "Configured but signed out");
+  check(fresh.status(), "ログアウト中：クラウドと同期していません", "Configured but signed out");
+  check(fresh.el("cloudSyncStatus").dataset.state, "signed-out", "…shown as a warning");
+  check(fresh.el("saveStatus").dataset.cloud, "off", "…and the local save dot stops reading green");
   check(fresh.el("cloudSyncSignIn").hidden, false, "…and now offers sign-in");
 
   fresh.el("cloudEmailInput").value = "someone@example.com";
