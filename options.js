@@ -192,25 +192,48 @@
     button.disabled = true;
     let opened = 0;
     let firstError = null;
+    let remaining = [];
     try {
-      for (const bookmark of unique) {
+      for (const [index, bookmark] of unique.entries()) {
         try {
           await chrome.tabs.create({ url: bookmark.url, active: opened === 0 });
           opened += 1;
         } catch (error) {
           firstError ||= error;
-          // Once the browser blocks one pop-up it blocks the rest of this click.
-          if (error?.reason === "blocked") break;
+          // Once the browser blocks one pop-up it blocks the rest of this click,
+          // however long we wait: the click allows a single new tab.
+          if (error?.reason === "blocked") {
+            remaining = unique.slice(index);
+            break;
+          }
         }
-      }
-      if (firstError) {
-        await explainOpenError(firstError);
-      } else {
-        showToast(`${label}：${opened}件のタブを開きました`);
       }
     } finally {
       button.disabled = false;
     }
+
+    if (remaining.length) {
+      await askToOpenRemaining(remaining, opened, button, label);
+    } else if (firstError) {
+      await explainOpenError(firstError);
+    } else {
+      showToast(`${label}：${opened}件のタブを開きました`);
+    }
+  }
+
+  // Unless pop-ups are allowed for this site, the browser lets one click open
+  // only one tab.  A short toast is easy to miss, so say it in a dialog that
+  // stays until answered; its button is a fresh click, so it can carry on with
+  // the rest (all of them once pop-ups are allowed, otherwise one more).
+  async function askToOpenRemaining(remaining, opened, button, label) {
+    const approved = await askConfirmation({
+      title: "ポップアップがブロックされました",
+      message: `ブラウザーのポップアップブロックにより、${opened}件を開いたところで残り${remaining.length}件を開けませんでした。`
+        + "アドレスバー右端のポップアップブロックのアイコンから、このサイトのポップアップを「常に許可」にすると、まとめて開けるようになります。"
+        + "許可したあと「残りを開く」を押してください。",
+      confirmLabel: "残りを開く"
+    });
+    if (approved) await openBookmarks(remaining, button, label);
   }
 
   function openGroup(group, button) {
