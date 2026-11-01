@@ -951,6 +951,18 @@ legend {
   background: var(--danger);
 }
 
+/* Signed out: tint the whole page warm so the unsynced state is obvious
+   at a glance, not only in the small header panel. */
+html[data-cloud-state="signed-out"] {
+  --canvas: #fff3e6;
+  background: var(--canvas);
+}
+
+html[data-cloud-state="signed-out"] .topbar {
+  border-bottom: 3px solid #f08a4b;
+  background: rgba(255, 233, 214, 0.96);
+}
+
 .cloud-sync-detail {
   color: #8a94a8;
   font-size: 10px;
