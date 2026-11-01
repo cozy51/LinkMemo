@@ -100,6 +100,10 @@
     els.status.textContent = message;
     els.status.dataset.state = state;
     if (els.panel) els.panel.dataset.state = state;
+    // Lets the whole page change tone (e.g. warm background while signed out).
+    if (globalThis.document?.documentElement?.dataset) {
+      document.documentElement.dataset.cloudState = state;
+    }
     // The local "保存済み" dot is green only while edits also reach the cloud.
     if (els.saveStatus) {
       els.saveStatus.dataset.cloud = state === "signed-out" || state === "local-only" ? "off" : "on";
