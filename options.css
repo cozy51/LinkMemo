@@ -450,6 +450,29 @@ main {
   font-size: 19px;
 }
 
+.position-select {
+  height: 36px;
+  padding: 0 26px 0 10px;
+  border: 1px solid #cad7ff;
+  border-radius: 10px;
+  color: #315bd2;
+  background: #eef2ff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23315bd2' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 9px center / 10px 6px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  appearance: none;
+}
+
+.position-select:hover:not(:disabled) {
+  filter: saturate(1.15) brightness(0.96);
+}
+
+.position-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .icon-button.action-toggle {
   display: grid;
   place-items: center;
@@ -1202,5 +1225,15 @@ html[data-cloud-state="signed-out"] .topbar {
 
   .editor-group-header > .row-actions {
     grid-column: 1 / -1;
+    flex-wrap: wrap;
+  }
+
+  .editor-bookmark {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .editor-bookmark > .row-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 }
