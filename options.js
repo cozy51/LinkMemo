@@ -164,6 +164,33 @@
     return true;
   }
 
+  function moveItemTo(array, index, nextIndex) {
+    if (index === nextIndex || nextIndex < 0 || nextIndex >= array.length) return false;
+    const [item] = array.splice(index, 1);
+    array.splice(nextIndex, 0, item);
+    return true;
+  }
+
+  // Jumps straight to any position, so a long list needs no repeated clicks.
+  function positionSelect(array, index, label) {
+    const select = document.createElement("select");
+    select.className = "position-select";
+    select.title = `${label}の順番を選んで移動`;
+    select.setAttribute("aria-label", `${label}の順番`);
+    for (let i = 0; i < array.length; i += 1) {
+      const option = document.createElement("option");
+      option.value = String(i);
+      option.textContent = `${i + 1}番目`;
+      option.selected = i === index;
+      select.append(option);
+    }
+    select.disabled = array.length < 2;
+    select.addEventListener("change", async () => {
+      if (moveItemTo(array, index, Number(select.value))) await persist();
+    });
+    return select;
+  }
+
   // A web page cannot open browser or extension pages, and the browser lets it
   // open only one tab per click unless pop-ups are allowed for the site.  Both
   // cases are explained instead of failing silently.
@@ -321,7 +348,8 @@
         }
       );
     }, "action-delete");
-    actions.append(up, down, edit, remove);
+    const position = positionSelect(group.bookmarks, bookmarkIndex, "リンク");
+    actions.append(position, up, down, edit, remove);
 
     row.append(link, actions);
     return row;
@@ -397,7 +425,8 @@
         await persist("グループを削除しました");
       });
     }, "action-delete");
-    actions.append(toggle, open, add, up, down, edit, remove);
+    const position = positionSelect(data.groups, groupIndex, "グループ");
+    actions.append(toggle, open, add, position, up, down, edit, remove);
 
     header.append(emoji, titleWrap, actions);
     article.append(header);
