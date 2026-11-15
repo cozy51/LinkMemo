@@ -50,6 +50,7 @@
   let confirmAction = null;
   let confirmResolve = null;
   let pendingImport = null;
+  let searchTerms = [];
 
   const elements = {
     groupList: document.querySelector("#groupList"),
@@ -99,8 +100,79 @@
     importWarning: document.querySelector("#importWarning"),
     importAcknowledgeRow: document.querySelector("#importAcknowledgeRow"),
     importAcknowledge: document.querySelector("#importAcknowledge"),
+    searchInput: document.querySelector("#searchInput"),
+    searchSummary: document.querySelector("#searchSummary"),
     toast: document.querySelector("#toast")
   };
+
+  // Full-width and half-width forms, and upper and lower case, are treated as
+  // the same letter so "ＧＩＴ" finds "github.com".
+  function normalizeForSearch(text) {
+    return String(text || "").normalize("NFKC").toLowerCase();
+  }
+
+  function parseSearchTerms(query) {
+    return normalizeForSearch(query).split(/\s+/).filter(Boolean);
+  }
+
+  // Every word has to appear somewhere in the given texts (AND search).
+  function matchesAll(texts, terms) {
+    const haystack = texts.map(normalizeForSearch).join("\n");
+    return terms.every((term) => haystack.includes(term));
+  }
+
+  // Wraps each hit in <mark>.  Built from text nodes only, so a title can never
+  // inject markup.  NFKC can change a string's length, so the match positions
+  // are found on a per-character normalized copy mapped back to the original.
+  function setHighlightedText(element, text) {
+    const source = String(text || "");
+    if (!searchTerms.length) {
+      element.textContent = source;
+      return;
+    }
+    const chars = Array.from(source);
+    const normalizedChars = chars.map(normalizeForSearch);
+    const offsets = [];
+    let normalized = "";
+    normalizedChars.forEach((part, index) => {
+      for (let i = 0; i < part.length; i += 1) offsets.push(index);
+      normalized += part;
+    });
+
+    const hit = new Array(chars.length).fill(false);
+    for (const term of searchTerms) {
+      let from = normalized.indexOf(term);
+      while (from !== -1) {
+        for (let i = from; i < from + term.length; i += 1) hit[offsets[i]] = true;
+        from = normalized.indexOf(term, from + term.length);
+      }
+    }
+
+    const nodes = [];
+    let buffer = "";
+    let inHit = false;
+    const flush = () => {
+      if (!buffer) return;
+      if (inHit) {
+        const mark = document.createElement("mark");
+        mark.className = "search-hit";
+        mark.textContent = buffer;
+        nodes.push(mark);
+      } else {
+        nodes.push(document.createTextNode(buffer));
+      }
+      buffer = "";
+    };
+    chars.forEach((char, index) => {
+      if (hit[index] !== inHit) {
+        flush();
+        inHit = hit[index];
+      }
+      buffer += char;
+    });
+    flush();
+    element.replaceChildren(...nodes);
+  }
 
   function faviconUrl(url) {
     // The extension's own /_favicon/ endpoint is not available to a web page, so
@@ -304,10 +376,10 @@
     kind.setAttribute("aria-hidden", "true");
     const title = document.createElement("span");
     title.className = "editor-bookmark-title";
-    title.textContent = bookmark.title;
+    setHighlightedText(title, bookmark.title);
     const url = document.createElement("span");
     url.className = "editor-bookmark-url";
-    url.textContent = bookmark.url;
+    setHighlightedText(url, bookmark.url);
     titleLine.append(kind, title);
     copy.append(titleLine, url);
 
@@ -355,9 +427,16 @@
     return row;
   }
 
-  function createGroup(group, groupIndex) {
+  // While searching, `visible` lists only the matching links; each keeps its
+  // real index so moving or deleting it still acts on the right entry.
+  function createGroup(group, groupIndex, visible = null) {
+    const searching = visible !== null;
+    const entries = visible || group.bookmarks.map((bookmark, index) => ({ bookmark, index }));
     const article = document.createElement("article");
-    article.className = `editor-group${group.collapsed ? " is-collapsed" : ""}`;
+    // Hits inside a folded group would otherwise stay hidden, so a search shows
+    // them without changing the saved folded state.
+    const collapsed = group.collapsed && !searching;
+    article.className = `editor-group${collapsed ? " is-collapsed" : ""}`;
     article.dataset.color = group.color;
 
     const header = document.createElement("header");
@@ -374,9 +453,11 @@
     kind.textContent = "GROUP";
     kind.setAttribute("aria-hidden", "true");
     const title = document.createElement("h3");
-    title.textContent = group.name;
+    setHighlightedText(title, group.name);
     const meta = document.createElement("p");
-    meta.textContent = `${group.bookmarks.length}件のリンク`;
+    meta.textContent = searching
+      ? `${group.bookmarks.length}件中${entries.length}件が一致`
+      : `${group.bookmarks.length}件のリンク`;
     titleWrap.append(kind, title, meta);
 
     const actions = document.createElement("div");
@@ -431,10 +512,12 @@
     header.append(emoji, titleWrap, actions);
     article.append(header);
 
-    if (group.bookmarks.length) {
+    toggle.disabled = searching;
+
+    if (entries.length) {
       const list = document.createElement("ul");
       list.className = "editor-bookmarks";
-      group.bookmarks.forEach((bookmark, index) => list.append(createBookmarkRow(group, bookmark, index)));
+      entries.forEach(({ bookmark, index }) => list.append(createBookmarkRow(group, bookmark, index)));
       article.append(list);
     } else {
       const empty = document.createElement("div");
@@ -462,14 +545,80 @@
     elements.domainCount.textContent = String(domains.size);
     elements.openAll.disabled = bookmarks.length === 0;
 
-    if (data.groups.length) {
-      elements.groupList.replaceChildren(...data.groups.map(createGroup));
+    if (searchTerms.length) {
+      renderSearchResults();
+    } else if (data.groups.length) {
+      elements.searchSummary.hidden = true;
+      elements.groupList.replaceChildren(...data.groups.map((group, index) => createGroup(group, index)));
     } else {
+      elements.searchSummary.hidden = true;
       const empty = document.createElement("div");
       empty.className = "manager-empty";
       empty.textContent = "グループがありません。「新しいグループ」から作成してください。";
       elements.groupList.replaceChildren(empty);
     }
+  }
+
+  // A link is shown when every word is found in its title, its URL or the name
+  // of its group; a group whose name matches therefore shows all of its links.
+  function renderSearchResults() {
+    let total = 0;
+    const cards = [];
+    data.groups.forEach((group, groupIndex) => {
+      const visible = group.bookmarks
+        .map((bookmark, index) => ({ bookmark, index }))
+        .filter(({ bookmark }) => matchesAll([bookmark.title, bookmark.url, group.name], searchTerms));
+      const groupMatches = matchesAll([group.name], searchTerms);
+      if (!visible.length && !groupMatches) return;
+      total += visible.length;
+      cards.push(createGroup(group, groupIndex, visible));
+    });
+
+    elements.searchSummary.hidden = false;
+    if (cards.length) {
+      elements.searchSummary.textContent =
+        `「${elements.searchInput.value.trim()}」に一致：${cards.length}グループ・${total}件のリンク（Escで解除）`;
+      elements.groupList.replaceChildren(...cards);
+    } else {
+      elements.searchSummary.textContent = "";
+      const empty = document.createElement("div");
+      empty.className = "manager-empty";
+      empty.textContent = `「${elements.searchInput.value.trim()}」に一致するリンクはありません。`;
+      elements.groupList.replaceChildren(empty);
+    }
+  }
+
+  function updateSearch() {
+    searchTerms = parseSearchTerms(elements.searchInput.value);
+    render();
+  }
+
+  function setupSearch() {
+    elements.searchInput.addEventListener("input", updateSearch);
+    elements.searchInput.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && elements.searchInput.value) {
+        event.preventDefault();
+        elements.searchInput.value = "";
+        updateSearch();
+      } else if (event.key === "Enter") {
+        // Enter opens the first hit, the usual "find and go" move.
+        const first = elements.groupList.querySelector(".editor-bookmark-link");
+        if (searchTerms.length && first) {
+          event.preventDefault();
+          first.click();
+        }
+      }
+    });
+    // "/" jumps to the search box from anywhere but a text field or a dialog.
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey) return;
+      const target = event.target;
+      if (target.closest?.("input, textarea, select, [contenteditable], dialog")) return;
+      if (document.querySelector("dialog[open]")) return;
+      event.preventDefault();
+      elements.searchInput.focus();
+      elements.searchInput.select();
+    });
   }
 
   function buildChoiceControls() {
@@ -792,6 +941,7 @@
     buildChoiceControls();
     elements.appVersion.textContent = `v${chrome.runtime.getManifest().version}`;
     data = await Store.load();
+    setupSearch();
     render();
 
     elements.addGroup.addEventListener("click", () => showGroupDialog());
